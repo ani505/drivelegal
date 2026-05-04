@@ -1,3 +1,4 @@
+# Emergency SOS API - helps people find hospitals/police fast
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -13,10 +14,19 @@ async def list_emergency_facilities(
     facility_type: str = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
-    """List nearby emergency facilities (hospitals, police, etc)."""
-    query = select(EmergencyFacility)
-    if facility_type:
-        query = query.where(EmergencyFacility.facility_type == facility_type)
+    # this will get the emergency facilities like Hospitals or Police
+    print(f"DEBUG: Looking for emergency spots. Type: {facility_type}")
     
-    result = await db.execute(query)
-    return result.scalars().all()
+    # building the query
+    sql_query = select(EmergencyFacility)
+    
+    # filter if user provided a specific type
+    if facility_type:
+        sql_query = sql_query.where(EmergencyFacility.facility_type == facility_type)
+    
+    # running the query
+    db_result = await db.execute(sql_query)
+    all_facilities = db_result.scalars().all()
+    
+    print(f"DEBUG: Found {len(all_facilities)} facilities nearby")
+    return all_facilities

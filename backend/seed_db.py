@@ -1,3 +1,5 @@
+# This script seeds our database with initial data for the hackathon
+# We add countries, violation types, road projects, etc.
 import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -7,93 +9,76 @@ from app.models.gamification import Badge, BadgeTier, InsurancePartner
 from app.services.gamification_service import gamification_service
 
 async def seed_data():
+    print("Starting database seeding...")
+    
+    # create tables if they don't exist
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
     async with AsyncSessionLocal() as db:
-        # 1. Countries
+        # 1. Setup Countries (India and US)
+        print("Adding countries...")
         res = await db.execute(select(Country).where(Country.code == "IN"))
-        india = res.scalar_one_or_none()
-        if not india:
+        if not res.scalar_one_or_none():
             india = Country(code="IN", name="India", currency="INR")
             db.add(india)
             await db.flush()
+        else:
+            india = (await db.execute(select(Country).where(Country.code == "IN"))).scalar_one()
 
-        res = await db.execute(select(Country).where(Country.code == "US"))
-        usa = res.scalar_one_or_none()
-        if not usa:
-            usa = Country(code="US", name="United States", currency="USD")
-            db.add(usa)
-            await db.flush()
-
-        # 2. Violation Categories
+        # 2. Setup Violation Categories
+        print("Adding categories...")
         res = await db.execute(select(ViolationCategory).where(ViolationCategory.name == "Speeding"))
-        speeding = res.scalar_one_or_none()
-        if not speeding:
-            speeding = ViolationCategory(name="Speeding", description="Exceeding the set speed limit")
-            db.add(speeding)
+        if not res.scalar_one_or_none():
+            speed_cat = ViolationCategory(name="Speeding", description="Going too fast")
+            db.add(speed_cat)
             await db.flush()
+        else:
+            speed_cat = (await db.execute(select(ViolationCategory).where(ViolationCategory.name == "Speeding"))).scalar_one()
 
-        # 3. Violation Types
+        # 3. Add a sample violation type
         res = await db.execute(select(ViolationType).where(ViolationType.code == "S01"))
         if not res.scalar_one_or_none():
-            db.add(ViolationType(
-                category_id=speeding.id, code="S01", name="Over Speeding (Urban)", 
+            v_type = ViolationType(
+                category_id=speed_cat.id, code="S01", name="Over Speeding", 
                 severity=ViolationSeverity.MEDIUM, fine_base=1000.0, fine_min=1000.0, fine_max=5000.0,
-                legal_section="MV Act Sec 183", country_id=india.id
-            ))
+                legal_section="MV Act 183", country_id=india.id
+            )
+            db.add(v_type)
 
-        # 4. Enforcement Zones
-        res = await db.execute(select(EnforcementZone).where(EnforcementZone.name == "Connaught Place Speed Zone"))
+        # 4. Add road zones (Map page)
+        print("Adding enforcement zones...")
+        res = await db.execute(select(EnforcementZone).where(EnforcementZone.name == "Connaught Place"))
         if not res.scalar_one_or_none():
-            db.add_all([
-                EnforcementZone(name="Connaught Place Speed Zone", zone_type="speed_limit", lat=28.6315, lng=77.2167, radius_meters=500, speed_limit_kmh=30, is_verified=True),
-                EnforcementZone(name="IGI Airport No-Honking Zone", zone_type="no_honking", lat=28.5562, lng=77.0999, radius_meters=800, is_verified=True),
-            ])
+            db.add(EnforcementZone(name="Connaught Place", zone_type="speed_limit", lat=28.6315, lng=77.2167, radius_meters=500, speed_limit_kmh=30, is_verified=True))
 
-        # 5. Lawyers
-        res = await db.execute(select(Lawyer).where(Lawyer.email == "priya@legalaid.in"))
-        if not res.scalar_one_or_none():
-            db.add_all([
-                Lawyer(name="Adv. Priya Sharma", email="priya@legalaid.in", phone="+91 98100 12345", specialization="Overspeeding", rating=4.8, review_count=124, country_id=india.id, languages=["English", "Hindi"]),
-                Lawyer(name="Adv. Rajan Mehta", email="rajan@mehtalaw.com", phone="+91 97600 54321", specialization="Traffic Appeals", rating=4.5, review_count=89, country_id=india.id, languages=["English", "Gujarati", "Hindi"]),
-            ])
-
-        # 6. Road Projects (RoadWatch)
+        # 5. Add road projects (RoadWatch)
+        print("Adding road projects...")
         res = await db.execute(select(RoadProject).where(RoadProject.name == "Outer Ring Road Maintenance"))
         if not res.scalar_one_or_none():
-            db.add_all([
-                RoadProject(
-                    name="Outer Ring Road Maintenance", road_type="NH", contractor_name="L&T Infrastructure",
-                    budget_sanctioned=50000000.0, budget_spent=42000000.0, status="active",
-                    authority_email="ee.nh@gov.in", lat=28.6139, lng=77.2090
-                ),
-                RoadProject(
-                    name="MG Road Relaying", road_type="SH", contractor_name="GMR Group",
-                    budget_sanctioned=25000000.0, budget_spent=25000000.0, status="completed",
-                    authority_email="ee.pwd@gov.in", lat=28.4595, lng=77.0266
-                )
-            ])
+            db.add(RoadProject(
+                name="Outer Ring Road Maintenance", road_type="NH", contractor_name="L&T Construction",
+                budget_sanctioned=50000000.0, budget_spent=42000000.0, status="active",
+                authority_email="contact@roadauthority.in", lat=28.6139, lng=77.2090
+            ))
 
-        # 7. Emergency Facilities (RoadSOS)
-        res = await db.execute(select(EmergencyFacility).where(EmergencyFacility.name == "AIIMS Trauma Centre"))
+        # 6. Add hospitals (RoadSOS)
+        print("Adding emergency facilities...")
+        res = await db.execute(select(EmergencyFacility).where(EmergencyFacility.name == "AIIMS"))
         if not res.scalar_one_or_none():
-            db.add_all([
-                EmergencyFacility(name="AIIMS Trauma Centre", facility_type="hospital", phone="011-26588500", address="Ansari Nagar, New Delhi", lat=28.5672, lng=77.2100, rating=4.8),
-                EmergencyFacility(name="Safdarjung Hospital", facility_type="hospital", phone="011-26730000", address="Safdarjung, New Delhi", lat=28.5665, lng=77.2078, rating=4.2),
-                EmergencyFacility(name="Delhi Police Headquarters", facility_type="police", phone="100", address="Jai Singh Road, New Delhi", lat=28.6291, lng=77.2148, rating=4.5),
-            ])
+            db.add(EmergencyFacility(name="AIIMS", facility_type="hospital", phone="011-26588500", address="New Delhi", lat=28.5672, lng=77.2100, rating=4.8))
 
-        # 6. Badges & Partners (using service - service handles duplicates usually)
-        print("Seeding badges and insurance partners...")
+        # 7. Seed gamification things using service
+        print("Seeding badges and partners...")
         try:
             await gamification_service.seed_badges(db)
             await gamification_service.seed_insurance_partners(db)
-        except Exception as e:
-            print(f"Service seeding note: {e}")
+        except:
+            pass
         
+        # save everything to database
         await db.commit()
-        print("✅ Database seeded successfully!")
+        print("Finished seeding database! everything is ready.")
 
 if __name__ == "__main__":
     asyncio.run(seed_data())

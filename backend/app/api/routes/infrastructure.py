@@ -1,3 +1,5 @@
+# RoadWatch API - created for hackathon 2026
+# helps citizens track road construction and budgets
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -13,10 +15,18 @@ async def list_road_projects(
     road_type: str = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
-    """List road projects and repair history."""
-    query = select(RoadProject)
-    if road_type:
-        query = query.where(RoadProject.road_type == road_type)
+    # this endpoint returns all road projects from the database
+    print(f"DEBUG: Fetching road projects. Filter: {road_type}")
     
-    result = await db.execute(query)
-    return result.scalars().all()
+    # building the query
+    stmt = select(RoadProject)
+    
+    if road_type is not None:
+        stmt = stmt.where(RoadProject.road_type == road_type)
+    
+    # execute the query and get results
+    res = await db.execute(stmt)
+    projects_list = res.scalars().all()
+    
+    print(f"DEBUG: Found {len(projects_list)} projects")
+    return projects_list
