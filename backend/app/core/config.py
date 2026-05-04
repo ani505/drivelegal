@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-me-in-production"
     DEBUG: bool = True
     ALLOWED_ORIGINS: List[str] = ["http://localhost:3000"]
+    BLOCKCHAIN_NETWORK: str = "http://localhost:8545"
+    GOOGLE_CLIENT_ID: str = ""
 
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://postgres:password@localhost:5432/drivelegal"

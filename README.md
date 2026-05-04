@@ -34,6 +34,10 @@ Every year, millions of drivers face traffic violations without clearly understa
 - **Driver Badges**: Earn rewards for "Clean Records" and "Safe Driving Streaks."
 - **Insurance Integration**: High safety scores unlock exclusive insurance discounts from partners.
 
+### 🛣️ 5. RoadWatch & RoadSOS
+- **Infrastructure Transparency**: View road repair history, contractor details, and budget spending.
+- **Emergency SOS**: Location-based access to nearby hospitals and police stations with one-tap dialing.
+
 ---
 
 ## 🛠️ Tech Stack
@@ -50,21 +54,6 @@ Every year, millions of drivers face traffic violations without clearly understa
 
 ---
 
-## 📂 Architecture Overview
-
-```mermaid
-graph TD
-    User((Driver)) --> Frontend[Next.js Web App]
-    Frontend --> API[FastAPI Gateway]
-    API --> LLM[AI Service: Claude/Gemini]
-    API --> Vision[Vision Service: YOLOv8]
-    API --> Chain[Blockchain Service: Polygon]
-    LLM --> RAG[(Vector DB: Laws)]
-    Chain --> Contract[Smart Contracts]
-```
-
----
-
 ## 🚀 Quick Setup
 
 1. **Clone & Install**
@@ -75,7 +64,18 @@ graph TD
    ```
 
 2. **Environment Configuration**
-   Edit the `.env` file with your API keys (Anthropic, Gemini, Google Maps).
+   Edit the `.env` file with your API keys:
+   - `GEMINI_API_KEY`: Required for AI legal assistant.
+   - `NEXT_PUBLIC_GOOGLE_CLIENT_ID`: Required for Google Authentication.
+   - `DATABASE_URL`: PostgreSQL connection string (defaults to SQLite).
+   - `SECRET_KEY`: JWT signing key.
+
+### Google OAuth Setup
+1. Go to [Google Cloud Console](https://console.cloud.google.com/).
+2. Create a new project and go to "APIs & Services" > "Credentials".
+3. Create an "OAuth 2.0 Client ID" for a Web Application.
+4. Add `http://localhost:3000` to "Authorized JavaScript origins".
+5. Copy the Client ID and paste it into your `backend/.env` and `frontend/.env.local`.
 
 3. **Launch**
    ```bash

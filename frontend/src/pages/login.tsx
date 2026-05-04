@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/Input';
 import { useAuthStore } from '@/store/authStore';
 import { authApi } from '@/utils/api';
 
+import { GoogleLogin } from '@react-oauth/google';
+
 export default function LoginPage() {
   const router = useRouter();
   const { setAuth } = useAuthStore();
@@ -16,6 +18,19 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleGoogleSuccess = async (response: any) => {
+    setLoading(true);
+    try {
+      const res = await authApi.googleLogin({ credential: response.credential });
+      setAuth(res.data.user, res.data.access_token);
+      router.push('/profile');
+    } catch (err: any) {
+      setError(err.message || 'Google login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +72,23 @@ export default function LoginPage() {
           </div>
 
           <div className="glass p-8 rounded-3xl border border-white/10 shadow-2xl">
+            <div className="mb-6 flex justify-center">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setError('Google Login Failed')}
+                useOneTap
+                theme="filled_blue"
+                shape="pill"
+                text="continue_with"
+                width="100%"
+              />
+            </div>
+
+            <div className="relative mb-6">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5"></div></div>
+              <div className="relative flex justify-center text-xs uppercase"><span className="bg-surface-900 px-2 text-slate-500 font-bold">Or continue with email</span></div>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-5">
               <Input
                 id="login-email"

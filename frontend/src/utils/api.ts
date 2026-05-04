@@ -33,9 +33,10 @@ api.interceptors.response.use(
 );
 
 export const authApi = {
-  login:    (body: unknown)                => api.post('/auth/login', body),
-  register: (body: unknown)                => api.post('/auth/register', body),
-  me:       ()                             => api.get('/auth/me'),
+  login:       (body: unknown)                => api.post('/auth/login', body),
+  register:    (body: unknown)                => api.post('/auth/register', body),
+  googleLogin: (body: { credential: string }) => api.post('/auth/google', body),
+  me:          ()                             => api.get('/auth/me'),
 };
 
 // ─── Typed helpers ────────────────────────────────────────────────────────────

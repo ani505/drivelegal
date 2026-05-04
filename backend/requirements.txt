@@ -58,3 +58,4 @@ ultralytics==8.2.0
 onnxruntime==1.18.0
 
 # Gamification (no extra deps — uses existing SQLAlchemy + FastAPI)
+google-auth==2.29.0
