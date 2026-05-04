@@ -5,6 +5,7 @@ Supports: Anthropic Claude + Google Gemini
 import json
 from typing import Optional
 import anthropic
+import google.generativeai as genai
 from app.core.config import settings
 
 
@@ -33,10 +34,19 @@ class AIService:
 
     def __init__(self):
         self.provider = settings.LLM_PROVIDER
-        if self.provider == "anthropic" and settings.ANTHROPIC_API_KEY:
+        
+        # Anthropic Setup
+        if settings.ANTHROPIC_API_KEY:
             self.anthropic_client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
         else:
             self.anthropic_client = None
+            
+        # Gemini Setup
+        if settings.GEMINI_API_KEY:
+            genai.configure(api_key=settings.GEMINI_API_KEY)
+            self.gemini_model = genai.GenerativeModel('gemini-flash-latest')
+        else:
+            self.gemini_model = None
 
     async def chat(
         self,
@@ -73,20 +83,36 @@ class AIService:
 
         if self.provider == "anthropic" and self.anthropic_client:
             return await self._anthropic_chat(system, messages)
+        elif self.provider == "gemini" and self.gemini_model:
+            return await self._gemini_chat(system, messages)
         else:
+            # Automatic fallback if provider is set but client is missing
+            if self.anthropic_client:
+                return await self._anthropic_chat(system, messages)
+            if self.gemini_model:
+                return await self._gemini_chat(system, messages)
+            
             return await self._fallback_response(message, country_code)
 
     async def _anthropic_chat(self, system: str, messages: list[dict]) -> tuple[str, list]:
         """Call Claude API."""
         try:
             response = self.anthropic_client.messages.create(
-                model="claude-sonnet-4-20250514",
+                model="claude-3-sonnet-20240229",
                 max_tokens=1500,
                 system=system,
                 messages=messages,
             )
+            content = response.content[0].text
+            return content, []
         except Exception as exc:
             err_text = str(exc).lower()
+            if "credit balance is too low" in err_text or "insufficient_funds" in err_text:
+                if self.gemini_model:
+                    # Automatic switch to Gemini if Anthropic fails due to credits
+                    return await self._gemini_chat(system, messages)
+                return ("Anthropic credits exhausted. Please switch to Gemini in .env.", [])
+            
             if "invalid x-api-key" in err_text or "authentication_error" in err_text or "401" in err_text:
                 return (
                     "DriveLegal AI is ready. Your configured Anthropic API key is invalid. "
@@ -96,8 +122,19 @@ class AIService:
                 )
             raise
 
-        content = response.content[0].text
-        return content, []
+    async def _gemini_chat(self, system: str, messages: list[dict]) -> tuple[str, list]:
+        """Call Gemini API."""
+        try:
+            # Combine system and user messages for Gemini
+            prompt = f"System Instruction: {system}\n\n"
+            for m in messages:
+                role = "User" if m['role'] == "user" else "Assistant"
+                prompt += f"{role}: {m['content']}\n"
+            
+            response = self.gemini_model.generate_content(prompt)
+            return response.text, []
+        except Exception as exc:
+            return (f"Gemini API Error: {str(exc)}", [])
 
     async def _fallback_response(self, message: str, country_code: Optional[str]) -> tuple[str, list]:
         """Fallback when no LLM API key is configured."""
@@ -110,11 +147,7 @@ class AIService:
     async def extract_violation_from_text(self, ocr_text: str) -> dict:
         """
         Extract structured violation data from OCR text of a traffic citation.
-        Returns structured dict with violation details.
         """
-        if not self.anthropic_client:
-            return {"error": "No LLM API configured"}
-
         prompt = f"""Analyze this traffic citation/ticket text and extract structured information.
 Return ONLY a valid JSON object with these fields:
 {{
@@ -135,12 +168,19 @@ Return ONLY a valid JSON object with these fields:
 Citation text:
 {ocr_text}"""
 
-        response = self.anthropic_client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=500,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        text = response.content[0].text
+        if self.provider == "gemini" and self.gemini_model:
+            response = self.gemini_model.generate_content(prompt)
+            text = response.text
+        elif self.anthropic_client:
+            response = self.anthropic_client.messages.create(
+                model="claude-3-sonnet-20240229",
+                max_tokens=500,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            text = response.content[0].text
+        else:
+            return {"error": "No LLM API configured"}
+
         # Strip any markdown code fences
         text = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
         try:
@@ -156,14 +196,11 @@ Citation text:
         circumstances: Optional[str],
     ) -> str:
         """Generate step-by-step appeal instructions."""
-        if not self.anthropic_client:
-            return "Configure an LLM API key to generate appeal guidance."
-
         prompt = f"""Generate step-by-step guidance for appealing a traffic violation.
 
 Violation: {violation_type}
 Jurisdiction: {country_code}{f' / {state_code}' if state_code else ''}
-Circumstances: {circumstances or 'Not specified'}
+Circstances: {circumstances or 'Not specified'}
 
 Provide:
 1. Eligibility for appeal
@@ -174,12 +211,18 @@ Provide:
 6. Expected timeline
 7. Costs involved"""
 
-        response = self.anthropic_client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=1000,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return response.content[0].text
+        if self.provider == "gemini" and self.gemini_model:
+            response = self.gemini_model.generate_content(prompt)
+            return response.text
+        elif self.anthropic_client:
+            response = self.anthropic_client.messages.create(
+                model="claude-3-sonnet-20240229",
+                max_tokens=1000,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            return response.content[0].text
+        else:
+            return "Configure an LLM API key to generate appeal guidance."
 
     def get_suggested_questions(self, country_code: Optional[str]) -> list[str]:
         """Return context-aware suggested follow-up questions."""

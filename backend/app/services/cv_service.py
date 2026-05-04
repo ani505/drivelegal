@@ -23,7 +23,15 @@ except ImportError:
     logger.warning("opencv-python not installed — CV service in basic mode")
 
 try:
+    import torch
     from ultralytics import YOLO
+    # Allow loading YOLO weights in PyTorch 2.6+
+    try:
+        from ultralytics.nn.tasks import DetectionModel
+        if hasattr(torch, "serialization"):
+            torch.serialization.add_safe_globals([DetectionModel])
+    except ImportError:
+        pass
     YOLO_AVAILABLE = True
 except ImportError:
     YOLO_AVAILABLE = False

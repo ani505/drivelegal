@@ -23,6 +23,8 @@ from app.api.routes import (
     blockchain_router,
     vision_router,
     gamification_router,
+    infrastructure,
+    sos,
 )
 
 
@@ -97,6 +99,8 @@ app.include_router(geo_router, prefix=API_PREFIX)
 app.include_router(profile_router, prefix=API_PREFIX)
 app.include_router(translate_router, prefix=API_PREFIX)
 app.include_router(lawyers_router, prefix=API_PREFIX)
+app.include_router(infrastructure.router, prefix=API_PREFIX)
+app.include_router(sos.router, prefix=API_PREFIX)
 app.include_router(appeal_router, prefix=API_PREFIX)
 app.include_router(blockchain_router, prefix=API_PREFIX)
 app.include_router(vision_router, prefix=API_PREFIX)

@@ -7,6 +7,7 @@ from .schemas import (
     DrivingProfileOut, RiskAssessmentResponse,
     TranslationRequest, TranslationResponse,
     LawyerSearch, LawyerOut,
+    RoadProjectOut, EmergencyFacilityOut,
     PaginatedResponse, MessageResponse,
 )
 
@@ -19,5 +20,6 @@ __all__ = [
     "DrivingProfileOut", "RiskAssessmentResponse",
     "TranslationRequest", "TranslationResponse",
     "LawyerSearch", "LawyerOut",
+    "RoadProjectOut", "EmergencyFacilityOut",
     "PaginatedResponse", "MessageResponse",
 ]

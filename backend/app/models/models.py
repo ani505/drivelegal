@@ -389,3 +389,51 @@ class BlockchainRecord(Base):
     block_number:   Mapped[Optional[int]]  = mapped_column(Integer)
     is_mock:        Mapped[bool]           = mapped_column(Boolean, default=True)
     created_at:     Mapped[datetime]       = mapped_column(DateTime, default=datetime.utcnow)
+# ─────────────────────────────────────────────
+# RoadWatch (Infrastructure Transparency)
+# ─────────────────────────────────────────────
+
+class RoadProject(Base):
+    __tablename__ = "road_projects"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(255))
+    road_type: Mapped[str] = mapped_column(String(50))  # NH, SH, MDR, Rural
+    contractor_name: Mapped[str] = mapped_column(String(255))
+    
+    last_repair_date: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    next_planned_repair: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    
+    budget_sanctioned: Mapped[float] = mapped_column(Float, default=0.0)
+    budget_spent: Mapped[float] = mapped_column(Float, default=0.0)
+    
+    status: Mapped[str] = mapped_column(String(50), default="completed")  # maintenance, relaying, delayed
+    authority_email: Mapped[Optional[str]] = mapped_column(String(255))
+    
+    lat: Mapped[float] = mapped_column(Float)
+    lng: Mapped[float] = mapped_column(Float)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+# ─────────────────────────────────────────────
+# RoadSOS (Emergency Services)
+# ─────────────────────────────────────────────
+
+class EmergencyFacility(Base):
+    __tablename__ = "emergency_facilities"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(255))
+    facility_type: Mapped[str] = mapped_column(String(50))  # hospital, police, ambulance, rescue
+    
+    phone: Mapped[str] = mapped_column(String(20))
+    address: Mapped[Optional[str]] = mapped_column(String(500))
+    
+    lat: Mapped[float] = mapped_column(Float)
+    lng: Mapped[float] = mapped_column(Float)
+    
+    is_open_24h: Mapped[bool] = mapped_column(Boolean, default=True)
+    rating: Mapped[float] = mapped_column(Float, default=0.0)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

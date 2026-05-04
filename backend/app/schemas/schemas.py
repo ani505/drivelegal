@@ -262,6 +262,41 @@ class LawyerOut(BaseModel):
 
 
 # ─────────────────────────────────────────────
+# RoadWatch & RoadSOS Schemas
+# ─────────────────────────────────────────────
+
+class RoadProjectOut(BaseModel):
+    id: int
+    name: str
+    road_type: str
+    contractor_name: str
+    last_repair_date: Optional[datetime]
+    next_planned_repair: Optional[datetime]
+    budget_sanctioned: float
+    budget_spent: float
+    status: str
+    authority_email: Optional[str]
+    lat: float
+    lng: float
+
+    model_config = {"from_attributes": True}
+
+
+class EmergencyFacilityOut(BaseModel):
+    id: int
+    name: str
+    facility_type: str
+    phone: str
+    address: Optional[str]
+    lat: float
+    lng: float
+    is_open_24h: bool
+    rating: float
+
+    model_config = {"from_attributes": True}
+
+
+# ─────────────────────────────────────────────
 # Generic Response Wrappers
 # ─────────────────────────────────────────────
 
